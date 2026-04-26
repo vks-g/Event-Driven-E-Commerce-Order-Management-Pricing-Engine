@@ -1,14 +1,10 @@
-import { RegularPricing } from './strategies/RegularPricing';
-import { SeasonalPricing } from './strategies/SeasonalPricing';
-import { BulkPricing } from './strategies/BulkPricing';
-import { MemberPricing } from './strategies/MemberPricing';
 import { PercentageDiscount } from './decorators/PercentageDiscount';
 import { FlatDiscount } from './decorators/FlatDiscount';
 import { CouponDiscount } from './decorators/CouponDiscount';
 import { LoyaltyDiscount } from './decorators/LoyaltyDiscount';
-import type { PricingStrategy } from './strategies/PricingStrategy';
 import type { PricingContext, PricingResult } from './strategies/PricingStrategy';
 import { DiscountDecorator } from './decorators/DiscountDecorator';
+import { PricingStrategyFactory } from './PricingStrategyFactory';
 
 export interface DiscountConfig {
   type: string;
@@ -47,17 +43,9 @@ interface StrategySimulationResult {
   total: number;
 }
 
-const STRATEGIES: Record<string, new () => PricingStrategy> = {
-  RegularPricing,
-  SeasonalPricing,
-  BulkPricing,
-  MemberPricing,
-};
-
 class PricingService {
   calculateItemPrice(item: CartItem, strategyName: string, discountConfigs: DiscountConfig[], context: PricingContext): ItemPricingResult {
-    const StrategyClass = STRATEGIES[strategyName] || RegularPricing;
-    const strategy = new StrategyClass();
+    const strategy = PricingStrategyFactory.create(strategyName);
 
     const itemContext: PricingContext = { ...context, quantity: item.quantity };
     let priceResult = strategy.calculatePrice(item.basePrice * item.quantity, itemContext);
@@ -129,8 +117,8 @@ class PricingService {
   simulateStrategies(items: CartItem[], context: PricingContext): Record<string, StrategySimulationResult> {
     const results: Record<string, StrategySimulationResult> = {};
 
-    for (const [name, StrategyClass] of Object.entries(STRATEGIES)) {
-      const strategy = new StrategyClass();
+    for (const name of PricingStrategyFactory.getAvailableStrategies()) {
+      const strategy = PricingStrategyFactory.create(name);
       const itemResults = items.map((item) => {
         const itemContext: PricingContext = { ...context, quantity: item.quantity };
         const priceResult = strategy.calculatePrice(item.basePrice * item.quantity, itemContext);
@@ -152,7 +140,7 @@ class PricingService {
   }
 
   getAvailableStrategies(): { name: string; description: string }[] {
-    return Object.keys(STRATEGIES).map((name) => ({
+    return PricingStrategyFactory.getAvailableStrategies().map((name) => ({
       name,
       description: this.getStrategyDescription(name),
     }));

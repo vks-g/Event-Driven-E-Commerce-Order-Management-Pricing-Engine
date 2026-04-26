@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Commerce Engine — API Explorer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 18px 32px; display: flex; align-items: center; gap: 14px; }
+    header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+    header span { font-size: 12px; background: #2563eb22; color: #60a5fa; border: 1px solid #2563eb55; padding: 2px 10px; border-radius: 20px; }
+    .layout { display: flex; height: calc(100vh - 61px); }
+    nav { width: 220px; flex-shrink: 0; background: #13151f; border-right: 1px solid #2d3148; overflow-y: auto; padding: 16px 0; }
+    nav .group-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; color: #64748b; padding: 12px 20px 4px; text-transform: uppercase; }
+    nav button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 20px; background: none; border: none; color: #94a3b8; font-size: 13px; cursor: pointer; transition: background .15s, color .15s; }
+    nav button:hover, nav button.active { background: #1e2235; color: #e2e8f0; }
+    nav button .method { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; min-width: 36px; text-align: center; }
+    .get { background: #16384a; color: #38bdf8; }
+    .post { background: #1a3a1a; color: #4ade80; }
+    .patch { background: #3a2f10; color: #fbbf24; }
+    main { flex: 1; overflow-y: auto; padding: 28px 32px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .endpoint-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .endpoint-desc { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+    .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    .card h3 { font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .05em; }
+    label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; margin-top: 10px; }
+    label:first-of-type { margin-top: 0; }
+    input, textarea, select { width: 100%; background: #0f1117; border: 1px solid #2d3148; border-radius: 6px; color: #e2e8f0; font-size: 13px; padding: 8px 10px; font-family: inherit; }
+    textarea { resize: vertical; min-height: 100px; font-family: 'Courier New', monospace; font-size: 12px; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #3b5bdb; }
+    .run-btn { margin-top: 16px; background: #2563eb; color: #fff; border: none; padding: 9px 22px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .run-btn:hover { background: #1d4ed8; }
+    .run-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    .response-box { background: #0a0c13; border: 1px solid #2d3148; border-radius: 8px; padding: 16px; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; min-height: 60px; color: #a3e635; max-height: 400px; overflow-y: auto; }
+    .status-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+    .s2xx { background: #14532d; color: #4ade80; }
+    .s4xx, .s5xx { background: #450a0a; color: #f87171; }
+    .base-url-bar { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .base-url-bar span { color: #64748b; }
+    .base-url-bar input { flex: 1; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>E-Commerce Engine</h1>
+  <span>API Explorer</span>
+</header>
+<div class="layout">
+  <nav id="nav"></nav>
+  <main id="main">
+    <div class="base-url-bar">
+      <span>Base URL</span>
+      <input id="base-url" value="http://localhost:3000" />
+    </div>
+    <div id="panels"></div>
+  </main>
+</div>
+
+<script>
+const ENDPOINTS = [
+  { group: 'Inventory', method: 'GET', label: 'List products', path: '/api/inventory', fields: [], desc: 'Returns all products in inventory.' },
+  { group: 'Inventory', method: 'GET', label: 'Get product by SKU', path: '/api/inventory/:sku', fields: [{ name: 'sku', label: 'SKU', placeholder: 'PROD-001', inPath: true }], desc: 'Fetch a single product by its SKU.' },
+  { group: 'Inventory', method: 'POST', label: 'Add product', path: '/api/inventory', fields: [], bodyTemplate: '{\n  "name": "Widget A",\n  "sku": "WIDGET-001",\n  "basePrice": 49.99,\n  "category": "widgets",\n  "stock": 100\n}', desc: 'Add a new product to inventory.' },
+  { group: 'Inventory', method: 'PATCH', label: 'Update stock', path: '/api/inventory/:sku/stock', fields: [{ name: 'sku', label: 'SKU', placeholder: 'WIDGET-001', inPath: true }], bodyTemplate: '{\n  "stock": 200\n}', desc: 'Update the stock level for a product.' },
+  { group: 'Pricing', method: 'GET', label: 'List strategies', path: '/api/pricing/strategies', fields: [], desc: 'Returns all available pricing strategies.' },
+  { group: 'Pricing', method: 'POST', label: 'Calculate cart price', path: '/api/pricing/calculate', fields: [], bodyTemplate: '{\n  "items": [\n    { "sku": "WIDGET-001", "name": "Widget A", "quantity": 10, "basePrice": 49.99 }\n  ],\n  "strategy": "BulkPricing",\n  "discounts": []\n}', desc: 'Calculate total price for a cart using a chosen strategy.' },
+  { group: 'Pricing', method: 'POST', label: 'Simulate strategies', path: '/api/pricing/simulate', fields: [], bodyTemplate: '{\n  "items": [\n    { "sku": "WIDGET-001", "name": "Widget A", "quantity": 50, "basePrice": 49.99 }\n  ],\n  "context": { "season": "holiday", "memberTier": "gold" }\n}', desc: 'Compare all pricing strategies side by side for a given cart.' },
+  { group: 'Orders', method: 'POST', label: 'Create order', path: '/api/orders', fields: [], bodyTemplate: '{\n  "items": [\n    { "sku": "WIDGET-001", "name": "Widget A", "quantity": 2, "basePrice": 49.99 }\n  ],\n  "strategy": "RegularPricing",\n  "discounts": []\n}', desc: 'Create a new order. Triggers ORDER_CREATED event and stock reservation.' },
+  { group: 'Orders', method: 'GET', label: 'List orders', path: '/api/orders', fields: [], desc: 'Returns all orders.' },
+  { group: 'Orders', method: 'GET', label: 'Get order by ID', path: '/api/orders/:id', fields: [{ name: 'id', label: 'Order ID', placeholder: '6650ab...', inPath: true }], desc: 'Fetch a single order by its MongoDB ID.' },
+  { group: 'Orders', method: 'POST', label: 'Confirm order', path: '/api/orders/:id/confirm', fields: [{ name: 'id', label: 'Order ID', placeholder: '6650ab...', inPath: true }], desc: 'Transition order from PENDING to CONFIRMED.' },
+  { group: 'Orders', method: 'POST', label: 'Cancel order', path: '/api/orders/:id/cancel', fields: [{ name: 'id', label: 'Order ID', placeholder: '6650ab...', inPath: true }], bodyTemplate: '{\n  "reason": "Customer requested cancellation"\n}', desc: 'Cancel an order. Triggers stock release via ORDER_CANCELLED event.' },
+  { group: 'Orders', method: 'POST', label: 'Transition status', path: '/api/orders/:id/transition', fields: [{ name: 'id', label: 'Order ID', placeholder: '6650ab...', inPath: true }], bodyTemplate: '{\n  "status": "PAYMENT_PROCESSING"\n}', desc: 'Manually transition order to any valid next status.' },
+  { group: 'Orders', method: 'GET', label: 'View state transitions', path: '/api/orders/transitions', fields: [], desc: 'Returns the full state machine transition map.' },
+  { group: 'Payments', method: 'POST', label: 'Process payment', path: '/api/payments/process', fields: [], bodyTemplate: '{\n  "orderId": "6650ab...",\n  "amount": 99.98,\n  "provider": "stripe"\n}', desc: 'Process a payment for an order via the Stripe adapter.' },
+  { group: 'Payments', method: 'POST', label: 'Refund payment', path: '/api/payments/:id/refund', fields: [{ name: 'id', label: 'Payment ID', placeholder: 'stripe_17...', inPath: true }], bodyTemplate: '{\n  "amount": 99.98\n}', desc: 'Issue a refund for a processed payment.' },
+  { group: 'Payments', method: 'GET', label: 'Payment status', path: '/api/payments/:id/status', fields: [{ name: 'id', label: 'Payment ID', placeholder: 'stripe_17...', inPath: true }], desc: 'Check the status of a payment.' },
+];
+
+const nav = document.getElementById('nav');
+const panelsEl = document.getElementById('panels');
+let activeId = null;
+
+const groups = [...new Set(ENDPOINTS.map(e => e.group))];
+groups.forEach(group => {
+  const label = document.createElement('div');
+  label.className = 'group-label';
+  label.textContent = group;
+  nav.appendChild(label);
+  ENDPOINTS.filter(e => e.group === group).forEach((ep, i) => {
+    const id = group + '-' + i;
+    const btn = document.createElement('button');
+    btn.dataset.id = id;
+    btn.innerHTML = `<span class="method ${ep.method.toLowerCase()}">${ep.method}</span>${ep.label}`;
+    btn.onclick = () => setActive(id);
+    nav.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.id = 'panel-' + id;
+
+    let fieldsHtml = '';
+    if (ep.fields && ep.fields.length) {
+      fieldsHtml = `<div class="card"><h3>Path Parameters</h3>` +
+        ep.fields.map(f => `<label>${f.label}</label><input id="${id}-${f.name}" placeholder="${f.placeholder || ''}" />`).join('') +
+        `</div>`;
+    }
+    let bodyHtml = '';
+    if (ep.bodyTemplate) {
+      bodyHtml = `<div class="card"><h3>Request Body</h3><textarea id="${id}-body">${ep.bodyTemplate}</textarea></div>`;
+    }
+
+    panel.innerHTML = `
+      <div class="endpoint-title"><span class="method ${ep.method.toLowerCase()}" style="font-size:13px;padding:3px 10px;border-radius:5px;">${ep.method}</span> &nbsp;${ep.path}</div>
+      <div class="endpoint-desc">${ep.desc}</div>
+      ${fieldsHtml}${bodyHtml}
+      <button class="run-btn" onclick="runRequest('${id}')">Send Request</button>
+      <div style="margin-top:20px;" id="${id}-resp-wrap" style="display:none">
+        <div class="card">
+          <h3>Response</h3>
+          <div id="${id}-status"></div>
+          <div class="response-box" id="${id}-resp">— hit Send Request —</div>
+        </div>
+      </div>`;
+    panelsEl.appendChild(panel);
+  });
+});
+
+function setActive(id) {
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`nav button[data-id="${id}"]`).classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  activeId = id;
+}
+
+async function runRequest(id) {
+  const ep = ENDPOINTS.find((e, i) => (e.group + '-' + ENDPOINTS.filter(x => x.group === e.group).indexOf(e)) === id);
+  const allEp = (() => {
+    let counter = {};
+    return ENDPOINTS.map(e => { counter[e.group] = (counter[e.group] || 0); const id2 = e.group + '-' + counter[e.group]; counter[e.group]++; return { ...e, id: id2 }; });
+  })().find(e => e.id === id);
+
+  if (!allEp) return;
+  const base = document.getElementById('base-url').value.replace(/\/$/, '');
+  let path = allEp.path;
+  (allEp.fields || []).forEach(f => {
+    const val = document.getElementById(id + '-' + f.name)?.value || '';
+    path = path.replace(':' + f.name, val);
+  });
+
+  const url = base + path;
+  const bodyEl = document.getElementById(id + '-body');
+  let body = undefined;
+  if (bodyEl) {
+    try { body = JSON.parse(bodyEl.value); } catch { body = null; }
+  }
+
+  const btn = document.querySelector(`button.run-btn[onclick="runRequest('${id}')"]`);
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  const respEl = document.getElementById(id + '-resp');
+  const statusEl = document.getElementById(id + '-status');
+  respEl.textContent = '…';
+
+  try {
+    const opts = { method: allEp.method, headers: { 'Content-Type': 'application/json' } };
+    if (body && ['POST','PATCH','PUT'].includes(allEp.method)) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    const text = await res.text();
+    let display;
+    try { display = JSON.stringify(JSON.parse(text), null, 2); } catch { display = text; }
+    const cls = res.status >= 500 ? 's5xx' : res.status >= 400 ? 's4xx' : 's2xx';
+    statusEl.innerHTML = `<span class="status-badge ${cls}">${res.status} ${res.statusText}</span>`;
+    respEl.textContent = display;
+  } catch (e) {
+    statusEl.innerHTML = `<span class="status-badge s5xx">Network Error</span>`;
+    respEl.textContent = e.message;
+  }
+  btn.disabled = false; btn.textContent = 'Send Request';
+}
+
+setActive('Inventory-0');
+</script>
+</body>
+</html>

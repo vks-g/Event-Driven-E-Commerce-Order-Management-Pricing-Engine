@@ -1,6 +1,7 @@
 import orderRepository from './orderRepository';
 import OrderStateMachine from './orderStateMachine';
 import pricingService from '../pricing/pricingService';
+import PricingService from '../pricing/pricingService';
 import EventBus from '../events/EventBus';
 import { EVENTS } from '../utils/constants';
 import type { IOrder, IOrderItem } from './orderModel';
@@ -19,8 +20,14 @@ interface CreateOrderParams {
 }
 
 class OrderService {
+  private pricingService: typeof PricingService;
+
+  constructor(pricingServiceInstance: typeof PricingService = pricingService) {
+    this.pricingService = pricingServiceInstance;
+  }
+
   async createOrder({ items, strategy, discounts, context, idempotencyKey }: CreateOrderParams): Promise<IOrder> {
-    const pricingResult = pricingService.calculateCartPrice(items, strategy || 'RegularPricing', discounts || [], context || {});
+    const pricingResult = this.pricingService.calculateCartPrice(items, strategy || 'RegularPricing', discounts || [], context || {});
 
     const orderItems: IOrderItem[] = items.map((item) => {
       const pricedItem = pricingResult.items.find((p) => p.sku === item.sku);

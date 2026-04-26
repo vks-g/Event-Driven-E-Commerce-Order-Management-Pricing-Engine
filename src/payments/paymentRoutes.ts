@@ -1,18 +1,10 @@
-import express from 'express';
-import { formatError } from '../utils/responseFormatter';
+import { Router } from 'express';
+import { processPayment, refundPayment, getPaymentStatus } from './paymentController';
 
-const router = express.Router();
+const router = Router();
 
-router.post('/process', (_req, res) => {
-  res.status(501).json(formatError(new Error('Payment processing not yet implemented'), 'Not Implemented', 501));
-});
-
-router.post('/:paymentId/refund', (_req, res) => {
-  res.status(501).json(formatError(new Error('Payment refund not yet implemented'), 'Not Implemented', 501));
-});
-
-router.get('/:paymentId/status', (_req, res) => {
-  res.status(501).json(formatError(new Error('Payment status check not yet implemented'), 'Not Implemented', 501));
-});
+router.post('/process', processPayment);
+router.post('/:id/refund', refundPayment);
+router.get('/:id/status', getPaymentStatus);
 
 export default router;

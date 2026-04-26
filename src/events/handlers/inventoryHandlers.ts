@@ -1,3 +1,5 @@
+// DIP: InventoryService is consumed here via its module export.
+// For full DIP compliance, this could be injected via a handler factory.
 import inventoryService from '../../inventory/inventoryService';
 import EventBus from '../../events/EventBus';
 import { EVENTS } from '../../utils/constants';

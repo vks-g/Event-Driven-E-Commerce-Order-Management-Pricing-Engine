@@ -172,7 +172,7 @@ flowchart LR
         L --> K2[Repository]
         K2 --> J2[Service]
         J2 --> I2[Controller]
-        I2 --> M[Response Formatter\n{ success, data, error }]
+        I2 --> M["Response Formatter\nsuccess / data / error"]
         M --> N[HTTP Response]
     end
 
@@ -642,5 +642,3 @@ tests/
 ```
 
 ---
-
-*Generated from source: [vks-g/Event-Driven-E-Commerce-Order-Management-Pricing-Engine](https://github.com/vks-g/Event-Driven-E-Commerce-Order-Management-Pricing-Engine)*
